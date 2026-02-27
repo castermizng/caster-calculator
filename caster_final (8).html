@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>캐스터 허용하중 계산기 — twinsbaltong</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue:#1565C0;--blue-dark:#0D47A1;--blue-light:#1976D2;
+    --blue-pale:#E3F2FD;--steel:#37474F;--steel-dark:#263238;
+    --steel-mid:#546E7A;--bg:#FFFFFF;--surface:#FFFFFF;
+    --surface2:#F8F9FA;--border:#CFD8DC;--text:#1C2B33;
+    --text-sub:#607D8B;--success:#2E7D32;--warn:#E65100;
+    --shadow:0 2px 16px rgba(13,47,101,0.13);
+    --shadow-h:0 8px 28px rgba(13,47,101,0.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* HERO */
+  .hero{background:#FFFFFF;position:relative;overflow:hidden;border-bottom:3px solid #D43030;}
+  .hero::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.05) 1px,transparent 1px);background-size:28px 28px;}
+  .hero-inner{padding:36px 24px 0;position:relative;z-index:1;text-align:center;}
+  .hero-deco{position:absolute;right:-8px;top:50%;transform:translateY(-50%);font-family:'Barlow Condensed',sans-serif;font-size:80px;font-weight:800;color:rgba(0,0,0,0.05);line-height:1;letter-spacing:-4px;pointer-events:none;white-space:nowrap;}
+  .hero-top{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;}
+  .hero-icon{width:38px;height:38px;background:#D43030;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;}
+  .hero-tag{background:rgba(212,48,48,0.10);border:1px solid rgba(212,48,48,0.4);color:#C02020;font-size:10px;font-weight:700;letter-spacing:1.5px;padding:3px 10px;border-radius:3px;}
+  .hero h1{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:800;color:#1E1A17;letter-spacing:-0.5px;line-height:1.15;margin-bottom:8px;}
+  .hero h1 em{color:#D43030;font-style:normal;}
+  .hero p{color:#7A7370;font-size:14px;line-height:1.7;}
+  .hero-stats{display:flex;border-top:1px solid rgba(0,0,0,0.08);margin-top:18px;}
+  .hero-stat{flex:1;padding:10px 14px;border-right:1px solid rgba(0,0,0,0.08);}
+  .hero-stat:last-child{border-right:none;}
+  .hero-stat .sv{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:#D43030;}
+  .hero-stat .sl{font-size:11px;color:#9A9490;margin-top:2px;}
+
+  /* WRAP */
+  .wrap{max-width:820px;margin:0 auto;padding:18px 16px 60px;}
+
+  /* CARD */
+  .card{background:var(--surface);border-radius:10px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
+  .card-head{background:var(--surface2);border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;gap:10px;}
+  .step-num{width:24px;height:24px;background:var(--blue);color:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;flex-shrink:0;}
+  .card-head-title{font-size:13px;font-weight:700;color:var(--steel);}
+  .card-head-sub{margin-left:auto;font-size:10.5px;color:var(--text-sub);}
+  .card-body{padding:16px 18px;}
+
+  /* SIZE SELECTOR — 핵심 */
+  .size-label-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+  .size-label-row .lbl{font-size:12px;font-weight:700;color:var(--steel);text-transform:uppercase;letter-spacing:.3px;}
+  .size-label-row .required{background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px;}
+  .size-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px;}
+  .size-btn{
+    border:2px solid var(--border);
+    border-radius:10px;
+    padding:14px 8px 12px;
+    background:var(--surface);
+    cursor:pointer;
+    transition:all .18s;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    position:relative;
+    overflow:hidden;
+  }
+  .size-btn:hover{border-color:var(--blue-light);background:var(--blue-pale);}
+  .size-btn.active{border-color:var(--blue);background:linear-gradient(160deg,#E8F0FE 0%,#fff 100%);box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+  .size-btn.active::before{content:'✓';position:absolute;top:4px;right:6px;font-size:10px;color:var(--blue);font-weight:900;}
+  .size-num{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--steel-dark);line-height:1;letter-spacing:-1px;transition:color .18s;}
+  .size-btn.active .size-num{color:var(--blue);}
+  .size-unit{font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.3px;}
+  .size-btn.active .size-unit{color:var(--blue-light);}
+  .size-inch{font-size:13px;color:var(--text-sub);font-weight:600;}
+  .size-cnt{font-size:10px;color:var(--text-sub);background:var(--surface2);padding:2px 7px;border-radius:10px;margin-top:2px;}
+  .size-btn.active .size-cnt{background:rgba(21,101,192,.1);color:var(--blue);}
+  .size-all-btn{
+    border:2px dashed var(--border);
+    border-radius:8px;
+    padding:10px;
+    background:var(--surface2);
+    cursor:pointer;
+    font-size:12px;font-weight:600;color:var(--text-sub);
+    transition:all .18s;
+    text-align:center;
+    margin-top:4px;
+  }
+  .size-all-btn:hover{border-color:var(--blue-light);color:var(--blue);}
+  .size-all-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-pale);font-weight:700;}
+
+  /* 준비중 버튼 */
+  .size-soon-label{font-size:10.5px;font-weight:600;color:var(--text-sub);letter-spacing:.3px;margin:14px 0 8px;display:flex;align-items:center;gap:6px;}
+  .size-soon-label::before,.size-soon-label::after{content:'';flex:1;height:1px;background:var(--border);}
+  .size-btn.soon{opacity:.55;cursor:not-allowed;background:var(--surface2);}
+  .size-btn.soon:hover{border-color:var(--border);background:var(--surface2);transform:none;}
+  .soon-badge{position:absolute;top:5px;right:5px;background:#CFD8DC;color:#546E7A;font-size:8.5px;font-weight:700;padding:2px 5px;border-radius:3px;letter-spacing:.3px;}
+
+  /* 바닥 상태 버튼 */
+  .floor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .floor-btn{
+    border:2px solid var(--border);
+    border-radius:10px;
+    padding:13px 10px;
+    background:var(--surface);
+    cursor:pointer;
+    transition:all .18s;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    position:relative;
+  }
+  .floor-btn:hover{border-color:var(--blue-light);background:var(--blue-pale);}
+  .floor-btn.active{border-color:var(--blue);background:linear-gradient(160deg,#E8F0FE 0%,#fff 100%);box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+  .floor-btn.active::before{content:'✓';position:absolute;top:5px;right:8px;font-size:10px;color:var(--blue);font-weight:900;}
+  .floor-emoji{font-size:22px;line-height:1;}
+  .floor-name{font-size:15px;font-weight:700;color:var(--steel);}
+  .floor-btn.active .floor-name{color:var(--blue);}
+  .floor-desc{font-size:12.5px;color:var(--text-sub);text-align:center;line-height:1.5;}
+  .floor-factor{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;margin-top:2px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--steel-mid);}
+  .floor-btn.active .floor-factor{background:rgba(21,101,192,.1);color:var(--blue);}
+  /* 안전계수 자동 표시 */
+  .safety-auto-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:10px 14px;background:var(--blue-pale);border:1px solid #90CAF9;border-radius:8px;}
+  .safety-auto-label{font-size:11.5px;color:var(--blue-dark);font-weight:500;}
+  .safety-auto-val{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--blue);letter-spacing:-0.5px;}
+
+  /* TAB */
+  .tab-group{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:16px;}
+  .tab-btn{flex:1;padding:9px 12px;border:none;background:var(--surface2);font-size:12.5px;font-weight:500;font-family:'Noto Sans KR',sans-serif;color:var(--text-sub);cursor:pointer;transition:all .18s;border-right:1px solid var(--border);}
+  .tab-btn:last-child{border-right:none;}
+  .tab-btn.active{background:var(--blue);color:#fff;font-weight:700;}
+
+  /* INPUT */
+  .ig{margin-bottom:13px;}
+  .il{font-size:11px;font-weight:600;color:var(--text-sub);letter-spacing:.3px;margin-bottom:5px;display:block;text-transform:uppercase;}
+  .iw{display:flex;border:1.5px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .18s,box-shadow .18s;}
+  .iw:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+  .iw input{flex:1;padding:11px 14px;border:none;outline:none;font-size:20px;font-weight:700;font-family:'Barlow Condensed',sans-serif;color:var(--text);background:transparent;letter-spacing:-.5px;}
+  .iu{padding:0 13px;display:flex;align-items:center;background:var(--surface2);border-left:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--steel-mid);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  select{width:100%;padding:11px 36px 11px 13px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:'Noto Sans KR',sans-serif;color:var(--text);background:var(--surface);outline:none;cursor:pointer;transition:border-color .18s,box-shadow .18s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23607D8B' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;}
+  select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(21,101,192,.12);}
+  .info-tip{margin-top:7px;padding:9px 12px;background:var(--blue-pale);border-left:3px solid var(--blue);border-radius:0 6px 6px 0;font-size:11px;color:var(--blue-dark);line-height:1.6;}
+  .divider{height:1px;background:var(--border);margin:16px 0;}
+
+  /* CTA */
+  .calc-btn{width:100%;padding:15px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all .18s;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(21,101,192,.3);}
+  .calc-btn:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 6px 20px rgba(21,101,192,.4);}
+  .calc-btn svg{width:18px;height:18px;flex-shrink:0;}
+
+  /* RESULT SUMMARY */
+  .result-summary{display:none;border-radius:10px;overflow:hidden;border:1px solid #B0BEC5;margin-bottom:14px;}
+  .result-summary.show{display:block;animation:fadeUp .3s ease;}
+  .sum-top{background:linear-gradient(90deg,var(--blue-dark),var(--blue-light));padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
+  .sum-top .sl{font-size:11px;color:rgba(255,255,255,.6);font-weight:500;margin-bottom:3px;}
+  .sum-top .sv{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:#fff;letter-spacing:-1px;}
+  .sum-top .sv span{font-size:16px;font-weight:500;margin-left:2px;}
+  .match-b{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:8px 16px;text-align:center;}
+  .match-b .mn{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#fff;}
+  .match-b .ml{font-size:10px;color:rgba(255,255,255,.6);}
+  .sum-bot{background:var(--steel-dark);padding:10px 20px;display:flex;gap:20px;flex-wrap:wrap;}
+  .si .lbl{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.3px;margin-bottom:2px;}
+  .si .val{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#B0BEC5;}
+
+  /* SECTION TITLE */
+  .sec-title{font-size:13px;font-weight:700;color:var(--steel);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .sec-title::before{content:'';display:block;width:3px;height:14px;background:var(--blue);border-radius:2px;}
+  .cnt-b{margin-left:auto;background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+
+  /* CASTER CARDS */
+  .caster-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .cc{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:15px;position:relative;transition:all .2s;overflow:hidden;text-decoration:none;color:inherit;display:block;}
+  .cc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);transition:background .2s;}
+  .cc.best{border-color:var(--blue);background:linear-gradient(160deg,#F0F6FF 0%,#fff 60%);}
+  .cc.best::before{background:var(--blue);}
+  .cc:hover{border-color:var(--blue-light);box-shadow:var(--shadow-h);transform:translateY(-2px);}
+  .best-r{position:absolute;top:10px;right:-1px;background:var(--blue);color:#fff;font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:3px 0 0 3px;}
+  .t-icon{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:9px;background:var(--surface2);border:1px solid var(--border);}
+  .cc.best .t-icon{background:var(--blue-pale);border-color:#90CAF9;}
+  .c-name{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:8px;color:var(--text);padding-right:46px;}
+  .load-d{display:flex;align-items:baseline;gap:3px;margin-bottom:5px;}
+  .load-d .num{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--blue);letter-spacing:-1px;}
+  .load-d .ut{font-size:11px;color:var(--text-sub);font-weight:600;}
+  .mp{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:9px;}
+  .mp.safe{background:#E8F5E9;color:var(--success);}
+  .mp.warn{background:#FFF3E0;color:var(--warn);}
+  .bar-w{margin-top:8px;}
+  .bar-l{display:flex;justify-content:space-between;font-size:9px;color:var(--text-sub);margin-bottom:3px;}
+  .bar-bg{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--blue),#42A5F5);transition:width .6s cubic-bezier(.23,1,.32,1);}
+  .tag-l{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px;}
+  .tag{font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface2);border:1px solid var(--border);color:var(--steel-mid);font-weight:500;}
+  .tag.highlight{background:rgba(21,101,192,.1);border-color:#90CAF9;color:var(--blue);font-weight:700;}
+  .shop-btn{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:11px;padding:8px;background:var(--blue);color:#fff;border-radius:6px;font-size:11.5px;font-weight:700;letter-spacing:-.2px;transition:background .15s;}
+  .cc:hover .shop-btn{background:var(--blue-dark);}
+
+  /* NO RESULT */
+  .no-result{display:none;text-align:center;padding:40px 20px;background:var(--surface);border-radius:10px;border:1.5px dashed var(--border);}
+  .no-result.show{display:block;animation:fadeUp .3s ease;}
+
+  /* DISCLAIMER */
+  .disclaimer{margin-top:14px;padding:11px 14px;background:#FAFAFA;border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-sub);line-height:1.65;display:flex;gap:8px;}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @media(max-width:520px){
+    .hero h1{font-size:30px;}
+    .size-grid{grid-template-columns:repeat(2,1fr);}
+    .caster-grid{grid-template-columns:1fr;}
+    .row2{grid-template-columns:1fr;}
+    .sum-bot{gap:12px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div style="margin-bottom:14px;">
+      <img style="display:block;margin:0 auto 4px;" src="data:image/jpeg;base64,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PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvZy9pbWcvIgogICAgICAgICAgICB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIKICAgICAgICAgICAgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiCiAgICAgICAgICAgIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiCiAgICAgICAgICAgIHhtbG5zOmlsbHVzdHJhdG9yPSJodHRwOi8vbnMuYWRvYmUuY29tL2lsbHVzdHJhdG9yLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOnBkZj0iaHR0cDovL25zLmFkb2JlLmNvbS9wZGYvMS4zLyI+CiAgICAgICAgIDxkYzpmb3JtYXQ+SlBFRyBmaWxlIGZvcm1hdDwvZGM6Zm9ybWF0PgogICAgICAgICA8ZGM6dGl0bGU+CiAgICAgICAgICAgIDxyZGY6QWx0PgogICAgICAgICAgICAgICA8cmRmOmxpIHhtbDpsYW5nPSJ4LWRlZmF1bHQiPlByaW50PC9yZGY6bGk+CiAgICAgICAgICAgIDwvcmRmOkFsdD4KICAgICAgICAgPC9kYzp0aXRsZT4KICAgICAgICAgPHhtcDpNZXRhZGF0YURhdGU+MjAyNi0wMi0yN1QxMDo0Mjo0OCswOTowMDwveG1wOk1ldGFkYXRhRGF0ZT4KICAgICAgICAgPHhtcDpNb2RpZnlEYXRlPjIwMjYtMDItMjdUMDE6NDI6NDhaPC94bXA6TW9kaWZ5RGF0ZT4KICAgICAgICAgPHhtcDpDcmVhdGVEYXRlPjIwMjYtMDItMjdUMTA6NDI6NDgrMDk6MDA8L3htcDpDcmVhdGVEYXRlPgogICAgICAgICA8eG1wOkNyZWF0b3JUb29sPkFkb2JlIElsbHVzdHJhdG9yIDMwLjQgKFdpbmRvd3MpPC94bXA6Q3JlYXRvclRvb2w+CiAgICAgICAgIDx4bXA6VGh1bWJuYWlscz4KICAgICAgICAgICAgPHJkZjpBbHQ+CiAgICAgICAgICAgICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0iUmVzb3VyY2UiPgogICAgICAgICAgICAgICAgICA8eG1wR0ltZzp3aWR0aD4yNTY8L3htcEdJbWc6d2lkdGg+CiAgICAgICAgICAgICAgICAgIDx4bXBHSW1nOmhlaWdodD43NjwveG1wR0ltZzpoZWlnaHQ+CiAgICAgICAgICAgICAgICAgIDx4bXBHSW1nOmZvcm1hdD5KUEVHPC94bXBHSW1nOmZvcm1hdD4KICAgICAgICAgICAgICAgICAgPHhtcEdJbWc6aW1hZ2U+LzlqLzRBQVFTa1pKUmdBQkFnRUFBQUFBQUFELzdRQXNVR2h2ZEc5emFHOXdJRE11TUFBNFFrbE5BKzBBQUFBQUFCQUFBQUFBQUFFQSYjeEE7QVFBQUFBQUFBUUFCLys0QURrRmtiMkpsQUdUQUFBQUFBZi9iQUlRQUJnUUVCQVVFQmdVRkJna0dCUVlKQ3dnR0JnZ0xEQW9LQ3dvSyYjeEE7REJBTURBd01EQXdRREE0UEVBOE9EQk1URkJRVEV4d2JHeHNjSHg4Zkh4OGZIeDhmSHdFSEJ3Y05EQTBZRUJBWUdoVVJGUm9mSHg4ZiYjeEE7SHg4Zkh4OGZIeDhmSHg4Zkh4OGZIeDhmSHg4Zkh4OGZIeDhmSHg4Zkh4OGZIeDhmSHg4Zkh4OGZIeDhmLzhBQUVRZ0FUQUVBQXdFUiYjeEE7QUFJUkFRTVJBZi9FQWFJQUFBQUhBUUVCQVFFQUFBQUFBQUFBQUFRRkF3SUdBUUFIQ0FrS0N3RUFBZ0lEQVFFQkFRRUFBQUFBQUFBQSYjeEE7QVFBQ0F3UUZCZ2NJQ1FvTEVBQUNBUU1EQWdRQ0JnY0RCQUlHQW5NQkFnTVJCQUFGSVJJeFFWRUdFMkVpY1lFVU1wR2hCeFd4UWlQQiYjeEE7VXRIaE14Wmk4Q1J5Z3ZFbFF6UlRrcUt5WTNQQ05VUW5rNk96TmhkVVpIVEQwdUlJSm9NSkNoZ1poSlJGUnFTMFZ0TlZLQnJ5NC9QRSYjeEE7MU9UMFpYV0ZsYVcxeGRYbDlXWjJocGFtdHNiVzV2WTNSMWRuZDRlWHA3ZkgxK2YzT0VoWWFIaUltS2k0eU5qbytDazVTVmxwZVltWiYjeEE7cWJuSjJlbjVLanBLV21wNmlwcXF1c3JhNnZvUkFBSUNBUUlEQlFVRUJRWUVDQU1EYlFFQUFoRURCQ0VTTVVFRlVSTmhJZ1p4Z1pFeSYjeEE7b2JId0ZNSFI0U05DRlZKaWN2RXpKRFJEZ2hhU1V5V2lZN0xDQjNQU05lSkVneGRVa3dnSkNoZ1pKalpGR2lka2RGVTM4cU96d3lncCYjeEE7MCtQemhKU2t0TVRVNVBSbGRZV1ZwYlhGMWVYMVJsWm1kb2FXcHJiRzF1YjJSMWRuZDRlWHA3ZkgxK2YzT0VoWWFIaUltS2k0eU5qbyYjeEE7K0RsSldXbDVpWm1wdWNuWjZma3FPa3BhYW5xS21xcTZ5dHJxK3YvYUFBd0RBUUFDRVFNUkFEOEE5TlpGTGhpcmVLdXhWdkZYWXEzaSYjeEE7cnNWYnhWd3hWdkNyc1ZieFYyS3RqRlhZcTNpcmhpcmVLdXhWdkZEc1V0NG9kaXJlS1hZVU40cTdGVzhWZGlyaGlyZUtvRElwY01WYiYjeEE7eFYyS3JaNTRMZUY1cDVGaWhqSEtTUnlGVlFPNUoyR0tzVUhuNTd6VmpwMmg2Y05UTzU5ZGJpTlVDcVFDN0ZSSnhYZmF1NThNTkl0SCYjeEE7MldzNmxaM1RXK3ZxaUxPNGExdjRLL1ZSNmxBc0RNd1VoZzFhRS9hOXEweFZrR0JMZUt1R0t0NFZkaXJlS3V4VnNZcTdGVzhWY01WYiYjeEE7eFYyS3Q0b2RpbHZGRHNWYnhTN0NodkZYWXEzaXJzVmNNVmJ4VkFaRkxoaXJVaGNJeFJlYmdFcXRhVlBZVnhWSVg4eDZ4SS9wV1hsKyYjeEE7N2VVZjNodVhpdDRsL3dCbnlrNWY3RUhEUzJrZDFyK3ZhL3B6aE5KdTRMUlpYaWxsczN0cmdTZW05RHhFNm8zd3N1ektOamhRaS95OCYjeEE7aGhndGRZdUhTNEYxOWNhT1pia21XNUVjVWErbXI4YWxqUmlkdkhiQVZDajVWMDM5TWFBOGJhcGQ4bzVKck8rdHlZM2krRWtNaXBKRyYjeEE7M0ZTaEJIY1lTb1p5QUFBQUtBYkFESXBjU0ZCSk5BTnlUMEF4VkNqVjlKLzViWVArUnFmMXdxeGo4eVB6VDBIeUw1YUd2M2NiNmpiZiYjeEE7V0k3VXhXVFJzNGFWV1lFOG1VVStBOThWWVI1MS93Q2Nsckx5L3dDU2ZMUG15eTBDUy90Zk1wdVBTdDVybGJhU0VXN0JmaUt4M0FiayYjeEE7Y1ZlcmVWTmMvVC9sYlI5ZDlENnQrbHJHMnZ2cTNMMVBUK3N3ckx3NTBUbHg1MHJ4RmZERlVacVdvV3VtNmRkYWpkc1V0Yk9HUzR1SCYjeEE7QUxFUnhLWGNnRGM3REZXS2VRZnpnOGllZkx1N3RQTFY1SmRUV1VheTNDeVFTd2dLN2NRUVpGV3UrS3MxeFZJUE1Ybi9BTWxlVzdxSyYjeEE7MTEvVzdQUzdtWlBWaWl1cGxqWmtxVjVBTWVsUVJpcVZEODZ2eWsvNm03Uy8ra21QK3VLRTd1Zk5tbG55aGVlYU5MbGoxU3d0N1NlOCYjeEE7Z2VHUWVuTUxkR1lxc2dEQVZLRmEwTk1Vc0IvSkQ4K2YrVm9YZXJXLzZEL1Evd0NpNDRaT1gxcjZ6Nm5yTTRwVDBZT05PSHZpaG1seCYjeEE7K1ovNWEyMDhsdmNlYmRHaHVJWGFPYUdUVUxWSFIwTkdWbE1nSUlJb1FjVldwK2FuNVlPNm9ubkRSR2RpQXFqVWJRa2s3QUFDVEZMQyYjeEE7dnp1L1AvOEE1VmZxZW1XUDZCL1Mvd0NrWUhuOVQ2MzlXNGNIQzhhZWpQeXJYeEdGRDFUUzczNi9wbG5mY1BUK3RRUnorblhseDlSQSYjeEE7M0d0QldsZkRBcVJlYlB6UDhnZVVabzRQTWV1VzJuM01vNUpiT3hlYmovTVk0dzdoVDJKRk1LcG41YjgxZVcvTTJuRFVkQTFLRFU3TyYjeEE7dkV6VzdoK0xEZmk0Nm8zc3dCeFY1WCtkWC9PUi93RHlyTHpUYTZEL0FJZC9TMzFteGp2dnJQMXo2dHg5U2FXTGh3OUNhdFBSclhsMyYjeEE7NllxOU44NWVkL0sva3pTQnJIbVc5K29hYzBxd0NmMHBwdjNqZ2xWNHdwSSs0VTcweFZoSC9RMGY1RmY5VE4vMDQ2aC8yVDRxbWZsdiYjeEE7L25JRDhvL011dDJ1aDZMcjMxdlZMMWlscmIvVkwyUG15cVhJNXl3b2crRlQxT0tzZjh1Zjg1RzJPdGZtOUwrWENhSExCUEZlMzlpZCYjeEE7U053cklUcDZ6TVg5UGdEOGZvZE9XMWNWZXg0cWdNaWx3eFZ2RlZHOHU0TE8wbXU3aHVNRnVqU1N0U3RGUVZPd3hWNTVZL21QNVgwMiYjeEE7NWtGbGN5TnBzMGpTbXpraFlHSjNQSnpFNEorRm1KYmdWNjlDTU5JdFN2ZnpBOHNMcWJhcnBGN05hM2t3VmJ1R1czWjRMaFUyWG1BUSYjeEE7eXVvMkRMaHBiUk9qL21aNVJ0SHZiaVpwRXVMNllUekpFak1nWVJKSDhKSVE3bE9YVHZncGJaNXBPcVdtcTZkQnFGbXhhMnVBV2pMQSYjeEE7cWRpUWFnKzR4U29lWmJqU29OQXYyMWEraDAzVG5oYUc0dnJpUklvb3hNUFNCWjVDcWo0bkFGVDF4VjhoZWJmeWEvSS9SdkwycFgxaCYjeEE7K1kwR282bGJXczAxall3ejJjeG1tUkNZNC8zVE1maWVnOGNVTU8wbXlrVC9BSngrOHdYeEI5T2Z6RFlRS2FiY29iYVptMy81N0RDcSYjeEE7ZS9tZFBBLzVDZmxkRWtpdEpIK2tmVVFFRmxyS0tWSGJGWDE3K1ZQL0FKSzd5ZC8ydzlOLzZoSThDV0kvODVHL21YcFhsSDh2OVIwNyYjeEE7MTBiWGRjdHBMT3dzd1I2Z1NjR09XY2pxcW9oYWg3dFFZcStiditjYS9QMXA1Qy9NRUpyOWJQU3RkdFZ0M3VKUndXTXV5eVc4N0UvNyYjeEE7ck80TGRQaXIwR0ZEN29qa1NSRmtqWVBHNERJNm1vSU80SUl3SmZIbi9PYXYvS2VhRi8yeS93RHNZbHdvZWdmOHFJLzV4Zy82dk1ILyYjeEE7QUhHSXYrYThDc3QxL3dBd2ZsWDVKL0xmVXZKTm5yMW5idEJwTjBsaFpUM0tQTXd1b1hraW9TYXR6OVg0Zkd1S1hrMy9BRGhEL3dBZCYjeEE7YnpaL3hncy8rSnk0VU1JOGgrUWRDODkvbjVyK2dhMjA2MkwzZXFUazJ6aU9UbEhPeFg0bVY5dC9ERlZEODgveTE4dS9sNytabWlhTCYjeEE7b0RYRFdkeGFXdDVJYnAxa2YxWHVwb3pRcXFiY1lsN1lxemIvQUp6Yy93Q1VtOHMvOHdVLy9KMFlxK2pCNXMwN1JQeTBPc2lXT2M2VCYjeEE7b3d2SGdSMUxIMExZTnhvRFhkZ0Z4VjhzL2taK1ZFWDV4Njc1ajh6ZWNyNjVlS09WVElZSFZKSnJtNDVNZmlaWDRwR2lpaWdkd0JzTSYjeEE7VlJIa3lMVWZ5WS81eVBpOHJSWGtrMmg2bGNRV1VucWJDYTN2Z1BxenVBQXZPR1dRVllEczNRSEZWbi9PYW4vazA5Sy83WWNIL1VYZCYjeEE7NHErdHZPWGtqeXY1ejBnYVA1bHN2cituTEtzNGc5V2FIOTRnSVZ1VUx4dnNHTzFjVmZDZjUvNmIrWHVrZm1ETm92a2F6VzEwM1RJVSYjeEE7Z3ZXU2VhNEVsNXlacGFQTkpLZmdCVkNCKzBEaXI2Yi9BQ0svTDM4ajlVMGJSUFBIbGpTRmgxdTFSUmNPTHU4a2EzdlBTNFRvOFVreiYjeEE7cCswZU5WM1VnakZYamY1YWYrdGszbi9iYzh3ZjhtcjNGWDJwaXFXWEU2Vzl2SlBJR0tSS1hZSXBkcUtLbWlxQ1NmWVpGTEJ2Tm5uSyYjeEE7NXRkVGloczcyNnRJdlNSNUl4cHNrOWVmeEE4bTQ3OFNBUjJQdmxVODhZbWpic05QMlpselE0NG1JSG5JSkpxdm4zV1p0UW1sMDdWNyYjeEE7cTBzbklNTnMranRJVUZBS2N5YXR2bU5MT2IyTzM5VjNlRHN2R0lBVGhHVXUvd0FXa0JmZWYvTU5scDczdHpyY2x6RUhFUXNuMDJPMiYjeEE7YWNzQ1NvZVRtQW9BK0k4VDFIamtUbmtCZC9ZMzQreXNPU1hBTVlHM1BqTXErQSt6ZEpMdnpicWsrbDJsdzF0WjJrOTA4c3lwRGFRaCYjeEE7UkFDc2NZSE5YUDIwazZuTXZUeWxLTnlkQjJ2cDhPSEw0ZUxjQWI3M3VnYlRVdGN2YnVPMXRRczF4T3dXT05JSXFrbi9BR0dYdXFleiYjeEE7ZVZQSXk2ZGJTSFdUYjZqY3pCRHdOdkVFaUsxcUZQR3JWcjFvT21CTk1yaWlpaGpXS0pGamlRY1VSQUZVQWRnQjB3SlNienQ1U3NQTiYjeEE7M2xYVWZMbW9TUEZhYWpHSTVKWXFjMTR1SFZscUNLaGxIWENyNHEvT3p5VitXWGxUVnJYeXI1S212ZFkxNFMwMUs0bW1qbldOeVNpVyYjeEE7cUpESEdHbExINHY1ZGgxSm9VUFJ2elY4Z3llUnYrY1lOSDBXNUFHcFBxY0YzcWRDQ1ByTThjck10UjE0THhUL0FHT0JYalBtdjh1WSYjeEE7TkMvTHZ5bDV0UythZVR6TDlaOVMwTVlWWWZxNzhSUitSNWN2a01LdnF6VkIrWlEvNXg2OHBUZmw3T1k5YmkwblNoSkFrY1Vra3NEMiYjeEE7a2FPSXZWQlZYVXNHcjRBOTZZRXZQdklYL09Mbm03WDllWHpMK2F0ODhuSnhMTnB6VG00dXJnamNMUE1wWlVUdFJHSnB0OE9LSHF2NSYjeEE7d2ZrRDVhL01IUzdVVzVUU05aMDJFVyttM2tVWTlNUXI5bUNXTmVOWTEvWnA5bnQzQlV2Ti93QXFQSTMvQURrajVOODU2YjVkdXIxaCYjeEE7NU1XVGxkWEhPSzh0QmJ4QXNVaDlRR2FFdlRpb0NydWEweFF4Zi9uTlgvbFBOQy83WmY4QTJNUzRWWjcvQU5DVStRLytyN3FuL1R2LyYjeEE7QU5Vc0NwcitaUDhBempwK1h0L29tcDYvY1hGN0pxZWo2UUlZeWswWWpKMDZ6Q1E4MEVaM0t4cVdGY1ZZRC96aEQveDF2Tm4vQUJncyYjeEE7L3dEaWN1RlVzL0lQL3dCYWUxMy9BSXphdi95Zk9LdS81eTcvQVBKMGVYZisyWFovOVIxemlxTC9BT2MzUCtVbThzLzh3VS8vQUNkRyYjeEE7S3NuOHRmOEFPTmkrV1BJL21YV3RPMWVYVXI3WFBMRnpheFdMVzRqQWU0U080QVZnN0VubENFRzNmRlVEL3dBNFMrWU5OVzE4eDZBOCYjeEE7cXBxTHl3M3NFVEdoa2lDR055bzc4Q0ZyL3JERldML21EZDIzblQvbkxEU3JYUnBGdVliVy93QlB0cEo0aUdVaXpLelhMS1JXdnBoWCYjeEE7SHpYRlZIL25OVC95YWVsZjlzT0QvcUx1OFZmUTM1L2FWK2FPb2VUbGovTDI4bGh2aktJcjZ6ZzlPT2FhQ1g0S3h6dlF4bEczSlZsKyYjeEE7R3UrMktzRS9LdjhBNXhuOHVlVmZMZXFYdjVpeld0eGZhdmJOYVRxMGlyYjJjTWxHUENaK1A3N2tvUHFEN05QaDdrcXNSL0w3OHI3TCYjeEE7eWY4QW10Ynk2SCtaK2xmNGFWakplUjIycFFKZVN4b3dLV3M5dUhLUHlZZ2MvbWFLYVlxaXZ5OS9MVHoxYmY4QU9UMC9tMmZSNTE4dCYjeEE7VGF0ck4xRnF2d0dGb2JxTzZFRWlzR05WazlSYWZQRlgxZGlxU2FycDM2UnNtdGZyTnhaOGlENjlwSjZVb29hN05ROWUrUlN3VyswVCYjeEE7VTdmOUllamVhNWNpMTlQNm54MVdCVGM4cUI2QWlzZnA3L2E2NUNVNUMvUzVlTFQ0cGNONUs0cnZZK251OTkrU1dhdEo1cnUvcW9mVCYjeEE7OWRzakJBc1ErcjZ4YnhlcUJYOTVKVkR5YzkyekZ5R2NqeWtQY1hmYVBIcDhVYUU4VTkrY3NjaWZ2WVYrWU1lb1JqUmYwajljOUhqTiYjeEE7dGYzUzNrMWZVSFA5NmdVVTQ4ZHN4OHZPUEZkZWU3dWV6eURITDRYQnhkT0dQQ09XMng4N1RpRFR0SjFIU1o1akZjejNNZHBieGFZMCYjeEE7QURRSklFL2ZpZGgvZC92ZVRmRVJzYTV0dytlU0J2Zm1sR2xYejJ2bWJSOU0waVF2UEpkMi93QmN1NDlqSWZWVSttaDZpSVVxYS9hNiYjeEE7bmFtWVdveW5qRVE5UDJUb01mNVhKbm1QNFpBWDd1WStPejZRekxlWmRpcVMrZE5CdmRmOHJhbG85anFNMmszbDVDMGNHb1c3RlpJMyYjeEE7UFExRy9FOUdwdlRwaFY1WCtTZi9BRGpUcGZrbTVqMS96Rk5GcTNtVlBpdHdnSnRyUnY1bytZRFNTZjViQVU3RHZpclgvT1lYL2twWSYjeEE7disycGJmOEFKdVhFSWVIL0FKb2YrU0EvS3Y4QTdlUC9BQ2VHS3ZZdFcvTnZ6WDVDL0xuOHVZZEM4dW5YRXY4QVFMTjUzQW1QcEdLMSYjeEE7Z0NqOTByZmE1SHJpbGpuL0FFTlgrYVAvQUZJRGY4QmQvd0ROR0tHLytocS96Ui82a0J2K0F1LythTUt1L3dDaHJQelIvd0RMZnQvdyYjeEE7RjMvelJnVm1INTEva0pyWDVvNnZwT3QydXFXK21DM3NFZ2tnbWprZGk3TzBwSTQwMkhPbUtzUVAvT0lQblM3S0hVZlByT1Q4TGt3eiYjeEE7elVXdlFjNTByOHRzVmVoZVZ2eWlYOHN2eW84NWFXdXJOcXkzdGxlWExTTkFMY0s0dEdRZ0tIbDZoUjN4VjVmL0FNNFEvd0RIVzgyZiYjeEE7OFlMUC9pY3VGV1M2Ny96aHJwZXI2NXFPcXQ1b25oYlVMbWE2YUlXaU1FTTBoazRnK3FLMDVVeFZEV24vQURoUHBWdmRRM0E4MXpzWSYjeEE7WFdRTDlUUVY0a0duOTc3WXF4di9BSnpjL3dDVW04cy84d1UvL0owWXErcWZLMy9LTWFSL3pCVy8vSnBjQ3ZCUHpGLzV3L3NkYTh3eiYjeEE7Nno1VTFaTkdTOGRwYm5UNW9tZUpKSHFYYUZrWUZWWW43QkczWTAyd3F6SDhrLzhBbkhiUlB5NG5rMWU1dXpxM21LYU14ZldpZ2poZyYjeEE7amJkbGhRbG1xM1JuSjNIUURlcXJ3djhBNXpVLzhtbnBYL2JEZy82aTd2RlgybmlyNFUxeThiOHlQejF2ZEovTVRYMzBEU2JlN3VyYSYjeEE7RVNzRmp0a2dabGpnak12N3FObjQ3dXdvVDh4aXIxZTkvd0NjWXY4QW5IMlBUbWMrYlo3WUlPUnZwTlJzZU5EMEwxaVZPTy9hbnp4ViYjeEE7aFA4QXpqUDVpMW5SZnpwbDhtYUxxMG1zZVQ1M3ZvMmY0dlFhTzNTUjRydU9NbGhHWGRGVWtkZVhmYkZYMlppcUF5S1dPM1hrUHl1MCYjeEE7RXh0OUt0UmNsV01Sa1Z2VDUwK0hrRklQR3ZXbUcwVWtlbytSdFZ2dE9WNTlMMEtYVjRmVGd0eklMb3dDMWpVZ0thRVB5RzFQYktNMiYjeEE7SVMzQUYrYnRlenUwRGk5TTVUamovb1Z6K0tUWFA1WGVZNyt6T25YTmxvVmxadklKRE5ZRzdXZEhBS2gxOVFPcmJIZFRUbDRnMElvTyYjeEE7bmtSUkVmaGJ0b2R0WVlTNDR5elNsWEtYRFIrWDM5UFBreGFmOG0vekJ0cFd0N2NRWEVGYUxNc3FnVThhU0JYSDBaQVlzMGRnZG5JbiYjeEE7MmgyYm1QSGtqNi9kK3JZL0ZuZjVjL2xPUEwxMk5YMWVaTHJWUUNJWTBxWTRTM1Z1VEFGbnB0V20zdjF5N0JwK0U4VXR5Njd0WHRvWiYjeEE7b2VGaUhEaisvd0FxNkI2Um1VODg3Rlc4VmNNVlNUemg1SjhzZWN0SkdrZVpMTDYvcHl5ck9JUFZsaC9lSUNGYmxDOGJiQmp0WENyQyYjeEE7dk8vL0FEajE1TDgwZVhORDh1eFMzT2thVDVmTXhzWUxWL1VOTGdnc0dlNDlaenVLOWNWZWcrWE5FZzBMeTlwZWgyOGp5MitsV2tGbCYjeEE7RExKVG15VzhTeEt6VUFGU0YzcGlxWTRxMk1WZGlyZUt1R0tvUFd0TGkxYlJyL1M1bmFPRy90NWJXUjBweVZaa01aSzFxS2dOaXJBLyYjeEE7eWsvSTN5LytXZHpxVStsWDkzZXRxYVJSeWk2OU9paUVzUng5TlU2OCsrS3ZTc1VPeFM4ei9ObjhoL0x2NWw2aFlYdXE2aGQyVW1ueCYjeEE7UERFdHI2VkdEdHlKYjFFZmZiQ2g2THAxa2xqcDl0WlJzV2p0WWtoUm02a1JxRkJOUGxnVkU0cGRoUThxL05iL0FKeDQ4cy9tUjVpdCYjeEE7OWMxVFVyMnp1TGEwU3hXSzE5TGdVamxrbERIMUVjMXJNY1ZlcllxODUvTUwvbkgvQVBMWHozZU5xR3JXVWxycTBnQ3lhbFl5ZWpNNCYjeEE7QW9PWUllSnlCKzB5RTlxMHhWNS9IL3poUCtYZ21EU2EzcTdRMTNRTmJLeEhoeTlFL3F4VjZ2OEFsNStVM2tieUJieXgrWExEMGJpNCYjeEE7QVc1dnBtTXR4SUJ1QTBqZEYveVZBSHRpck1jVmVTZm5GcEd0Mzk3NWJsU3cxSFdQSzl0TGRIWDlKMGk0TnZkU3M4U2kwZjRaTGRuUyYjeEE7TitYSUNRZFFkOGlsanhzL3pjLzVXWnBubUN6MHU2dGZLRm5iVytqSFIzdTBlNkVNOXVIbHVXVjNraWRvSm5BTHRJU2ZUNzljS3BWcCYjeEE7ZjVlZWRMM3lmcVduYXhwMnBHYTExVFRHMHE5dUw2ZEw2NGdlNWlUVUduaml2cnVGUWx1V0hLTmxEYnNGVTRxdTFEeWI1MHQvT1BuYyYjeEE7V1ZscVAxZWJUTGkxOHJ6S1pwSWhUU1REQ0V1VGVJc1o5VWNSemdjbHQrUU80VlNldy9MMzg5Tk8wZXpzN0QxVTFTeDF4ZFJqVnJ5UiYjeEE7ckV3V3VuSzZKV2FXV1EvV1p5OGNnWThPZmd1NFZUZlFQTFA1cjZScE15ZVk3Rzc4d1hFRSt0eXoyOXRjdWlYUzNscGFQQWl1SkVaVSYjeEE7OWRwVitIN05Hb1BGVkE2WjVIL01SUEp0dGFXZHZyZHZjemFUcWFhb2x4Y0ZIRi9jejJUS3NDbWVVaU5ZMGRZaWR6eFlrVkpxcXE2aCYjeEE7NVMvT1gwcjJEWDF2dGIwMjExZTJXOFRUcGpEUHFHbndXWmlobVFMTkF4L2VjR25SWkVKYXUrM0lLSHN2NVhycnErUTlJVFhiRDlHYSYjeEE7bWticExZbDVaVEdpeXVzTldtbXVwS3RFRVlocFdJSnBYYkZMS1JnVnZDcnNWYnhWMkt0akZYWXEzaXJoaXJlS3V4VnZGRHNVdDRvZCYjeEE7aXJlS1hZVU40cTdGVzhWZGlyaGlyZUtvRElwY01WYnhWMkt0NHE3Rlc4VmRpcmVLdUdLdDRWZGlyZUt1eFZzWXE3Rlc4VmNNVmJ4ViYjeEE7Mkt0NG9kaWx2RkRzVmJ4UzdDaHZGWFlxM2lyc1ZjTVZieFZTL3dCRy93QW5BcmYrai81T0t1LzBmL0p4UzcvUi93REp4UTc5eC9rNCYjeEE7cTc5eC9rNFZkKzQveWNWYi9jLzVPQlhmdWZiRlhmdWZiRlhmdWZiQ3J2M1B0aXJ2M1h0aXJ2M1h0aXJmN3IyeFYzN3YyeFYzN3YyeCYjeEE7VjM3djJ4VjN3ZTJLdStEMnhWdjRQYkZYZkI3WXE3NFBiRlhmRGlydmh4VjN3NHE3NGNWZHRpcmUyS3UyeFYyS3V4Vi8vOWs9PC94bXBHSW1nOmltYWdlPgogICAgICAgICAgICAgICA8L3JkZjpsaT4KICAgICAgICAgICAgPC9yZGY6QWx0PgogICAgICAgICA8L3htcDpUaHVtYm5haWxzPgogICAgICAgICA8eG1wTU06SW5zdGFuY2VJRD54bXAuaWlkOjM3MDI1MjQwLTFlZjQtZTY0OC04MjU4LTk0YjZkOWM5ZTU5ODwveG1wTU06SW5zdGFuY2VJRD4KICAgICAgICAgPHhtcE1NOkRvY3VtZW50SUQ+eG1wLmRpZDozNzAyNTI0MC0xZWY0LWU2NDgtODI1OC05NGI2ZDljOWU1OTg8L3htcE1NOkRvY3VtZW50SUQ+CiAgICAgICAgIDx4bXBNTTpPcmlnaW5hbERvY3VtZW50SUQ+dXVpZDo1RDIwODkyNDkzQkZEQjExOTE0QTg1OTBEMzE1MDhDODwveG1wTU06T3JpZ2luYWxEb2N1bWVudElEPgogICAgICAgICA8eG1wTU06UmVuZGl0aW9uQ2xhc3M+cHJvb2Y6cGRmPC94bXBNTTpSZW5kaXRpb25DbGFzcz4KICAgICAgICAgPHhtcE1NOkRlcml2ZWRGcm9tIHJkZjpwYXJzZVR5cGU9IlJlc291cmNlIj4KICAgICAgICAgICAgPHN0UmVmOmluc3RhbmNlSUQ+eG1wLmlpZDplYzNmNDcxZi0yNjVjLWE1NGQtOGFlMi1lMjRjMmU4MGIyOGE8L3N0UmVmOmluc3RhbmNlSUQ+CiAgICAgICAgICAgIDxzdFJlZjpkb2N1bWVudElEPnhtcC5kaWQ6ZWMzZjQ3MWYtMjY1Yy1hNTRkLThhZTItZTI0YzJlODBiMjhhPC9zdFJlZjpkb2N1bWVudElEPgogICAgICAgICAgICA8c3RSZWY6b3JpZ2luYWxEb2N1bWVudElEPnV1aWQ6NUQyMDg5MjQ5M0JGREIxMTkxNEE4NTkwRDMxNTA4Qzg8L3N0UmVmOm9yaWdpbmFsRG9jdW1lbnRJRD4KICAgICAgICAgICAgPHN0UmVmOnJlbmRpdGlvbkNsYXNzPnByb29mOnBkZjwvc3RSZWY6cmVuZGl0aW9uQ2xhc3M+CiAgICAgICAgIDwveG1wTU06RGVyaXZlZEZyb20+CiAgICAgICAgIDx4bXBNTTpIaXN0b3J5PgogICAgICAgICAgICA8cmRmOlNlcT4KICAgICAgICAgICAgICAgPHJkZjpsaSByZGY6cGFyc2VUeXBlPSJSZXNvdXJjZSI+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDphY3Rpb24+c2F2ZWQ8L3N0RXZ0OmFjdGlvbj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0Omluc3RhbmNlSUQ+eG1wLmlpZDplYzNmNDcxZi0yNjVjLWE1NGQtOGFlMi1lMjRjMmU4MGIyOGE8L3N0RXZ0Omluc3RhbmNlSUQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDp3aGVuPjIwMjYtMDItMjdUMTA6NDI6NDYrMDk6MDA8L3N0RXZ0OndoZW4+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDpzb2Z0d2FyZUFnZW50PkFkb2JlIElsbHVzdHJhdG9yIDMwLjQgKFdpbmRvd3MpPC9zdEV2dDpzb2Z0d2FyZUFnZW50PgogICAgICAgICAgICAgICAgICA8c3RFdnQ6Y2hhbmdlZD4vPC9zdEV2dDpjaGFuZ2VkPgogICAgICAgICAgICAgICA8L3JkZjpsaT4KICAgICAgICAgICAgICAgPHJkZjpsaSByZGY6cGFyc2VUeXBlPSJSZXNvdXJjZSI+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDphY3Rpb24+c2F2ZWQ8L3N0RXZ0OmFjdGlvbj4KICAgICAgICAgICAgICAgICAgPHN0RXZ0Omluc3RhbmNlSUQ+eG1wLmlpZDozNzAyNTI0MC0xZWY0LWU2NDgtODI1OC05NGI2ZDljOWU1OTg8L3N0RXZ0Omluc3RhbmNlSUQ+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDp3aGVuPjIwMjYtMDItMjdUMTA6NDI6NDgrMDk6MDA8L3N0RXZ0OndoZW4+CiAgICAgICAgICAgICAgICAgIDxzdEV2dDpzb2Z0d2FyZUFnZW50PkFkb2JlIElsbHVzdHJhdG9yIDMwLjQgKFdpbmRvd3MpPC9zdEV2dDpzb2Z0d2FyZUFnZW50PgogICAgICAgICAgICAgICAgICA8c3RFdnQ6Y2hhbmdlZD4vPC9zdEV2dDpjaGFuZ2VkPgogICAgICAgICAgICAgICA8L3JkZjpsaT4KICAgICAgICAgICAgPC9yZGY6U2VxPgogICAgICAgICA8L3htcE1NOkhpc3Rvcnk+CiAgICAgICAgIDxpbGx1c3RyYXRvcjpTdGFydHVwUHJvZmlsZT5QcmludDwvaWxsdXN0cmF0b3I6U3RhcnR1cFByb2ZpbGU+CiAgICAgICAgIDxpbGx1c3RyYXRvcjpDcmVhdG9yU3ViVG9vbD5BSVJvYmluPC9pbGx1c3RyYXRvcjpDcmVhdG9yU3ViVG9vbD4KICAgICAgICAgPGlsbHVzdHJhdG9yOklzRmlsZVNhdmVkVmlhSW5zdGFudFNhdmU+VHJ1ZTwvaWxsdXN0cmF0b3I6SXNGaWxlU2F2ZWRWaWFJbnN0YW50U2F2ZT4KICAgICAgICAgPHBkZjpQcm9kdWNlcj5BZG9iZSBQREYgbGlicmFyeSAxOC4wMDwvcGRmOlByb2R1Y2VyPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgIAo8P3hwYWNrZXQgZW5kPSJ3Ij8+/+AAEEpGSUYAAQIBAEgASAAA/+0ALFBob3Rvc2hvcCAzLjAAOEJJTQPtAAAAAAAQAEgAAAABAAEASAAAAAEAAf/bAIQAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQICAgICAgICAgICAwMDAwMDAwMDAwEBAQEBAQECAQECAgIBAgIDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD/90ABAAS/+4ADkFkb2JlAGTAAAAAAf/AABEIACgAjAMAEQABEQECEQH/xAGiAAABAgYDAAAAAAAAAAAAAAAKBgkAAQIDBAcFCAsBAAIBAgcAAAAAAAAAAAAAAAQFAwAGAQIHCAkKCxAAAAMDAgIGBY0AAAAAAAAAAwUGAQIEBwgACRESExQVFgoXISIyGBkaIyQlJicoKSoxMzQ1Njc4OTpBQkNERUZHSElKUVJTVFVWV1hZWmFiY2RlZmdoaWpxcnN0dXZ3eHl6gYKDhIWGh4iJipGSk5SVlpeYmZqhoqOkpaanqKmqsbKztLW2t7i5usHCw8TFxsfIycrR0tPU1dbX2Nna4eLj5OXm5+jp6vDx8vP09fb3+Pn6EQAAAgQCAQUvZQAAAAAAAAABAgADBBEFITEGEhNBUQcICQoUFRYXGBkaIiMkJSYnKCkqMjM0NTY3ODk6QkNERUZHSElKUlNUVWFicYGhVldYWVpjZGVmZ2hpanJz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" alt="캐스터마이징 로고" style="height:40px;width:auto;">
+    </div>
+    <div class="hero-top">
+      <div class="hero-icon">⚙️</div>
+      <span class="hero-tag">LOAD CALCULATOR</span>
+    </div>
+    <h1>캐스터 <em>허용하중</em><br>자동 추천 계산기</h1>
+    <p>바퀴 크기와 장비 무게를 입력하면 twinsbaltong의 적합한 캐스터를 바로 찾아드립니다.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="sv">44</div><div class="sl">등록 제품</div></div>
+      <div class="hero-stat"><div class="sv">4</div><div class="sl">바퀴 크기</div></div>
+      <div class="hero-stat"><div class="sv">220~770</div><div class="sl">허용하중 (kg)</div></div>
+    </div>
+  </div>
+  <div class="hero-deco">CASTER</div>
+</div>
+
+<div class="wrap">
+
+  <!-- STEP 1: 바퀴 크기 (가장 중요!) -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">1</span>
+      <span class="card-head-title">바퀴 크기 선택</span>
+      <span class="card-head-sub">가장 먼저 선택해주세요</span>
+    </div>
+    <div class="card-body">
+      <div class="size-label-row">
+        <span class="lbl">바퀴 직경</span>
+        <span class="required">필수</span>
+      </div>
+      <div class="size-grid">
+        <button class="size-btn" data-size="10" onclick="selectSize(this)">
+          <span class="size-num">10</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">4인치</span>
+          <span class="size-cnt">6종</span>
+        </button>
+        <button class="size-btn" data-size="12.7" onclick="selectSize(this)">
+          <span class="size-num">12.7</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">5인치</span>
+          <span class="size-cnt">9종</span>
+        </button>
+        <button class="size-btn" data-size="15" onclick="selectSize(this)">
+          <span class="size-num">15</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">6인치</span>
+          <span class="size-cnt">17종</span>
+        </button>
+        <button class="size-btn" data-size="20" onclick="selectSize(this)">
+          <span class="size-num">20</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">8인치</span>
+          <span class="size-cnt">12종</span>
+        </button>
+      </div>
+      <button class="size-all-btn active" id="size-all-btn" onclick="selectSizeAll()">전체 크기 (무관)</button>
+
+      <div class="size-soon-label">입고 준비중</div>
+      <div class="size-grid">
+        <button class="size-btn soon" disabled>
+          <span class="soon-badge">준비중</span>
+          <span class="size-num">2.5</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">1인치</span>
+          <span class="size-cnt">—</span>
+        </button>
+        <button class="size-btn soon" disabled>
+          <span class="soon-badge">준비중</span>
+          <span class="size-num">5</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">2인치</span>
+          <span class="size-cnt">—</span>
+        </button>
+        <button class="size-btn soon" disabled>
+          <span class="soon-badge">준비중</span>
+          <span class="size-num">7.5</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">3인치</span>
+          <span class="size-cnt">—</span>
+        </button>
+        <button class="size-btn soon" disabled>
+          <span class="soon-badge">준비중</span>
+          <span class="size-num">25</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">10인치</span>
+          <span class="size-cnt">—</span>
+        </button>
+        <button class="size-btn soon" disabled>
+          <span class="soon-badge">준비중</span>
+          <span class="size-num">30</span>
+          <span class="size-unit">cm</span>
+          <span class="size-inch">12인치</span>
+          <span class="size-cnt">—</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: 바닥 상태 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">2</span>
+      <span class="card-head-title">바닥 상태 선택</span>
+      <span class="card-head-sub">안전계수 자동 적용</span>
+    </div>
+    <div class="card-body">
+      <div class="floor-grid">
+        <button class="floor-btn" data-factor="1.5" onclick="selectFloor(this)">
+          <span class="floor-emoji">🟦</span>
+          <span class="floor-name">완전 평탄</span>
+          <span class="floor-desc">에폭시·타일·대리석<br>요철 없음</span>
+          <span class="floor-factor">× 1.5</span>
+        </button>
+        <button class="floor-btn active" data-factor="2.0" onclick="selectFloor(this)">
+          <span class="floor-emoji">🏭</span>
+          <span class="floor-name">일반 콘크리트</span>
+          <span class="floor-desc">공장·창고 바닥<br>약간의 요철</span>
+          <span class="floor-factor">× 2.0</span>
+        </button>
+        <button class="floor-btn" data-factor="2.5" onclick="selectFloor(this)">
+          <span class="floor-emoji">⚡</span>
+          <span class="floor-name">요철 심함</span>
+          <span class="floor-desc">배수구·철판·단차<br>충격·진동 있음</span>
+          <span class="floor-factor">× 2.5</span>
+        </button>
+        <button class="floor-btn" data-factor="3.0" onclick="selectFloor(this)">
+          <span class="floor-emoji">🌿</span>
+          <span class="floor-name">야외·험로</span>
+          <span class="floor-desc">아스팔트 균열<br>경사로·비포장</span>
+          <span class="floor-factor">× 3.0</span>
+        </button>
+      </div>
+      <div class="safety-auto-row">
+        <span class="safety-auto-label">⚙️ 자동 적용 안전계수</span>
+        <span class="safety-auto-val" id="auto-safety-display">× 2.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: 하중 입력 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">3</span>
+      <span class="card-head-title">하중 입력</span>
+    </div>
+    <div class="card-body">
+      <div class="tab-group">
+        <button class="tab-btn active" onclick="switchTab('direct')">📌 1개당 하중 직접 입력</button>
+        <button class="tab-btn" onclick="switchTab('calc')">🔧 장비 무게로 자동 계산</button>
+      </div>
+      <div id="tab-direct">
+        <div class="ig">
+          <label class="il">캐스터 1개당 부하 하중</label>
+          <div class="iw"><input type="number" id="direct-load" placeholder="0" min="0" oninput="resetResults()"><span class="iu">kg / 개</span></div>
+        </div>
+      </div>
+      <div id="tab-calc" style="display:none">
+        <div class="row2">
+          <div class="ig">
+            <label class="il">장비 총 무게</label>
+            <div class="iw"><input type="number" id="equip-weight" placeholder="0" min="0" oninput="resetResults()"><span class="iu">kg</span></div>
+          </div>
+          <div class="ig">
+            <label class="il">캐스터 수량</label>
+            <div class="iw"><input type="number" id="wheel-count" placeholder="4" min="1" max="20" value="4" oninput="resetResults()"><span class="iu">개</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: 유형 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">4</span>
+      <span class="card-head-title">캐스터 유형 선택</span>
+    </div>
+    <div class="card-body">
+      <div class="ig" style="margin-bottom:0">
+        <select id="caster-type" onchange="onTypeChange()">
+          <option value="all">전체 (무관)</option>
+          <option value="fixed">🔩 고정형 캐스터</option>
+          <option value="swivel">🔄 회전형 캐스터</option>
+          <option value="brake">🛑 브레이크형 캐스터</option>
+        </select>
+      </div>
+      <div class="info-tip" id="type-desc" style="display:none;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <button class="calc-btn" onclick="calculate()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    나에게 맞는 캐스터 찾기
+  </button>
+
+  <!-- RESULT SUMMARY -->
+  <div class="result-summary" id="result-summary">
+    <div class="sum-top">
+      <div>
+        <div class="sl">캐스터 1개당 필요 허용하중</div>
+        <div class="sv" id="req-load-d">— <span>kg</span></div>
+      </div>
+      <div class="match-b">
+        <div class="mn" id="match-cnt">0</div>
+        <div class="ml">적합 제품</div>
+      </div>
+    </div>
+    <div class="sum-bot">
+      <div class="si"><div class="lbl">총 하중</div><div class="val" id="d-total">—</div></div>
+      <div class="si"><div class="lbl">바닥 상태</div><div class="val" id="d-floor">—</div></div><div class="si"><div class="lbl">안전계수</div><div class="val" id="d-safety">—</div></div>
+      <div class="si"><div class="lbl">바퀴 수</div><div class="val" id="d-wheel">—</div></div>
+      <div class="si"><div class="lbl">바퀴 크기</div><div class="val" id="d-size">—</div></div>
+      <div class="si"><div class="lbl">유형</div><div class="val" id="d-type">—</div></div>
+    </div>
+  </div>
+
+  <!-- CASTER RESULTS -->
+  <div id="caster-results" style="display:none">
+    <div class="sec-title">추천 캐스터 목록 <span class="cnt-b" id="result-count">0</span></div>
+    <div class="caster-grid" id="caster-grid"></div>
+  </div>
+
+  <!-- NO RESULT -->
+  <div class="no-result" id="no-result">
+    <div style="font-size:36px;margin-bottom:10px">🔍</div>
+    <div style="font-weight:700;margin-bottom:6px;color:var(--steel)">조건에 맞는 제품이 없습니다</div>
+    <div style="font-size:12.5px;color:var(--text-sub);line-height:1.8">
+      안전계수를 낮추거나 바퀴 크기 / 유형 필터를 '전체'로 변경해보세요.<br>
+      <a href="https://smartstore.naver.com/twinsbaltong" target="_blank" style="color:var(--blue);font-weight:700;">twinsbaltong 스토어 전체보기 →</a>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <span>⚠️</span>
+    <span>본 계산기는 참고용입니다. 동적 하중·충격하중·편하중은 정격하중과 차이가 있을 수 있으므로 실제 적용 전 전문가 검토를 권장합니다.</span>
+  </div>
+</div>
+
+<script>
+const CASTERS = [{"id":"13166535947","name":"완충바퀴캐스터 스프링 타입 15cm (6인치) 350kg,바퀴폭4.8cm 미색고정","icon":"🔩","load":350,"type":"fixed","typeName":"고정형","size":"15","tags":["15cm","모카우레탄","완충스프링","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13166535947"},{"id":"13166509161","name":"완충바퀴캐스터 스프링 타입 15cm (6인치) 350kg,바퀴폭4.8cm 미색회전","icon":"🔄","load":350,"type":"swivel","typeName":"회전형","size":"15","tags":["15cm","모카우레탄","완충스프링","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13166509161"},{"id":"13166408633","name":"완충바퀴캐스터 스프링 타입 15cm (6인치) 350kg,바퀴폭4.8cm 미색브레이크","icon":"🛑","load":350,"type":"brake","typeName":"브레이크형","size":"15","tags":["15cm","모카우레탄","완충스프링","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13166408633"},{"id":"13160731429","name":"완충바퀴캐스터 스프링 타입 15cm (6인치) 350kg,바퀴폭4.8cm 적색회전","icon":"🔄","load":350,"type":"swivel","typeName":"회전형","size":"15","tags":["15cm","모카우레탄","완충스프링","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13160731429"},{"id":"13160664635","name":"완충바퀴캐스터 스프링 타입 15cm (6인치) 350kg,바퀴폭4.8cm 적색고정","icon":"🔩","load":350,"type":"fixed","typeName":"고정형","size":"15","tags":["15cm","모카우레탄","완충스프링","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13160664635"},{"id":"13150980242","name":"고중량 단조캐스터 20cm 8인치 770kg,바퀴폭6.4cm,모카우레탄 브레이크","icon":"🛑","load":770,"type":"brake","typeName":"브레이크형","size":"20","tags":["20cm","모카우레탄","단조","고중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13150980242"},{"id":"13150270273","name":"고중량 단조캐스터 20cm 8인치 770kg,바퀴폭6.4cm,모카우레탄 회전","icon":"🔄","load":770,"type":"swivel","typeName":"회전형","size":"20","tags":["20cm","모카우레탄","단조","고중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13150270273"},{"id":"13150016204","name":"고중량 단조캐스터 20cm 8인치 770kg,바퀴폭6.4cm,모카우레탄 고정","icon":"🔩","load":770,"type":"fixed","typeName":"고정형","size":"20","tags":["20cm","모카우레탄","단조","고중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13150016204"},{"id":"13146538625","name":"고중량 캐스터바퀴 20cm (8인치) 550kg,바퀴폭 6cm,모카우레탄 회전브레이크","icon":"🛑","load":550,"type":"brake","typeName":"브레이크형","size":"20","tags":["20cm","모카우레탄","고중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13146538625"},{"id":"13145844378","name":"고중량 캐스터바퀴 20cm (8인치) 550kg,바퀴폭 6cm,모카우레탄 회전","icon":"🔄","load":550,"type":"swivel","typeName":"회전형","size":"20","tags":["20cm","모카우레탄","고중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13145844378"},{"id":"13145716778","name":"고중량 캐스터바퀴 20cm (8인치) 550kg,바퀴폭 6cm,모카우레탄 고정","icon":"🔩","load":550,"type":"fixed","typeName":"고정형","size":"20","tags":["20cm","모카우레탄","고중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13145716778"},{"id":"13136252917","name":"고중량 단조바퀴 15cm(6인치)720kg,바퀴폭6.4cm,모카우레탄 회전브레이크","icon":"🛑","load":720,"type":"brake","typeName":"브레이크형","size":"15","tags":["15cm","모카우레탄","단조","고중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13136252917"},{"id":"13136213439","name":"고중량 단조바퀴 15cm(6인치)720kg,바퀴폭6.4cm,모카우레탄 회전","icon":"🔄","load":720,"type":"swivel","typeName":"회전형","size":"15","tags":["15cm","모카우레탄","단조","고중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13136213439"},{"id":"13127625249","name":"고중량 단조바퀴 15cm(6인치)720kg,바퀴폭6.4cm,모카우레탄 고정","icon":"🔩","load":720,"type":"fixed","typeName":"고정형","size":"15","tags":["15cm","모카우레탄","단조","고중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13127625249"},{"id":"13120166091","name":"고중량 캐스터바퀴  15cm (6인치) 450kg,바퀴폭6cm,모카우레탄 회전브레이크","icon":"🛑","load":450,"type":"brake","typeName":"브레이크형","size":"15","tags":["15cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13120166091"},{"id":"13109678269","name":"고중량 캐스터바퀴  15cm (6인치) 450kg,바퀴폭6cm,모카우레탄 회전","icon":"🔄","load":450,"type":"swivel","typeName":"회전형","size":"15","tags":["15cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13109678269"},{"id":"13109432517","name":"고중량 캐스터바퀴  15cm (6인치) 450kg,바퀴폭6cm,모카우레탄 고정","icon":"🔩","load":450,"type":"fixed","typeName":"고정형","size":"15","tags":["15cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13109432517"},{"id":"13103860611","name":"중량캐스터바퀴 20cm 8인치 400kg, 바퀴폭 4.8cm 모카우레탄 회전브레이크,큰판","icon":"🛑","load":400,"type":"brake","typeName":"브레이크형","size":"20","tags":["20cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13103860611"},{"id":"13101474316","name":"중량캐스터바퀴 20cm 8인치 400kg, 바퀴폭 4.8cm 모카우레탄 회전,큰판","icon":"🔄","load":400,"type":"swivel","typeName":"회전형","size":"20","tags":["20cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13101474316"},{"id":"13101286466","name":"중량캐스터바퀴 20cm 8인치 400kg, 바퀴폭 4.8cm 모카우레탄 고정,큰판","icon":"🔩","load":400,"type":"fixed","typeName":"고정형","size":"20","tags":["20cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13101286466"},{"id":"13093976977","name":"중량캐스터바퀴 20cm 8인치 400kg, 바퀴폭 4.8cm 모카우레탄 회전브레이크.작은판","icon":"🛑","load":400,"type":"brake","typeName":"브레이크형","size":"20","tags":["20cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13093976977"},{"id":"13093946739","name":"중량캐스터바퀴 20cm 8인치 400kg, 바퀴폭 4.8cm 모카우레탄 회전,작은판","icon":"🔄","load":400,"type":"swivel","typeName":"회전형","size":"20","tags":["20cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13093946739"},{"id":"13088763914","name":"중량캐스터바퀴 20cm 8인치 400kg, 바퀴폭 4.8cm 모카우레탄 고정,작은판","icon":"🔩","load":400,"type":"fixed","typeName":"고정형","size":"20","tags":["20cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13088763914"},{"id":"13087693894","name":"중량캐스터바퀴  15cm(6인치) 브레이크,380kg4.8cm모카우레탄","icon":"🛑","load":380,"type":"brake","typeName":"브레이크형","size":"15","tags":["15cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13087693894"},{"id":"13087670172","name":"중량캐스터바퀴  15cm(6인치) 회전,380kg,4.8cm,모카우레탄","icon":"🔄","load":380,"type":"swivel","typeName":"회전형","size":"15","tags":["15cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13087670172"},{"id":"13087639751","name":"중량캐스터바퀴  15cm(6인치) 고정,380kg,4,8cm,모카우레탄","icon":"🔩","load":380,"type":"fixed","typeName":"고정형","size":"15","tags":["15cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13087639751"},{"id":"13074758558","name":"중량캐스터바퀴  15cm(6인치) 브레이크,360kg4.4cm모카우레탄","icon":"🛑","load":360,"type":"brake","typeName":"브레이크형","size":"15","tags":["15cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13074758558"},{"id":"13074687435","name":"중량캐스터바퀴  15cm(6인치) 회전,360kg 4.4cm 모카우레탄","icon":"🔄","load":360,"type":"swivel","typeName":"회전형","size":"15","tags":["15cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13074687435"},{"id":"13074187386","name":"중량캐스터바퀴  15cm(6인치) 고정,360kg 4.4cm 모카우레탄","icon":"🔩","load":360,"type":"fixed","typeName":"고정형","size":"15","tags":["15cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13074187386"},{"id":"13063100056","name":"중량캐스터바퀴 12.7cm(5인치) 브레이크,340kg4.8cm모카우레탄","icon":"🛑","load":340,"type":"brake","typeName":"브레이크형","size":"12.7","tags":["12.7cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13063100056"},{"id":"13062770169","name":"중량캐스터바퀴 12.7cm(5인치) 회전,340kg 4.8cm 모카우레탄","icon":"🔄","load":340,"type":"swivel","typeName":"회전형","size":"12.7","tags":["12.7cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13062770169"},{"id":"13062600143","name":"중량캐스터바퀴 12.7cm(5인치) 고정,340kg 4.8cm 모카우레탄","icon":"🔩","load":340,"type":"fixed","typeName":"고정형","size":"12.7","tags":["12.7cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13062600143"},{"id":"13057902915","name":"중량캐스터바퀴 12.7cm(5인치) 브레이크,250kg3.8cm모카우레탄","icon":"🛑","load":250,"type":"brake","typeName":"브레이크형","size":"12.7","tags":["12.7cm","모카우레탄","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13057902915"},{"id":"13057820232","name":"중량캐스터바퀴 12.7cm(5인치) 회전,250kg 3.8cm 모카우레탄","icon":"🔄","load":250,"type":"swivel","typeName":"회전형","size":"12.7","tags":["12.7cm","모카우레탄","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13057820232"},{"id":"13057620131","name":"중량캐스터바퀴 12.7cm(5인치) 브레이크,320kg 4cm 모카우레탄","icon":"🛑","load":320,"type":"brake","typeName":"브레이크형","size":"12.7","tags":["12.7cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13057620131"},{"id":"13057525404","name":"중량캐스터바퀴 12.7cm(5인치) 고정,250kg 3.8cm 모카우레탄","icon":"🔩","load":250,"type":"fixed","typeName":"고정형","size":"12.7","tags":["12.7cm","모카우레탄","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13057525404"},{"id":"13021412968","name":"중량캐스터바퀴 12.7cm(5인치) 회전,320kg 4cm 모카우레탄","icon":"🔄","load":320,"type":"swivel","typeName":"회전형","size":"12.7","tags":["12.7cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13021412968"},{"id":"13020889961","name":"중량캐스터바퀴 12.7cm(5인치) 고정,320kg 4cm 모카우레탄","icon":"🔩","load":320,"type":"fixed","typeName":"고정형","size":"12.7","tags":["12.7cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/13020889961"},{"id":"12936047853","name":"중량 캐스터바퀴 10cm(4인치) 브레이크,320kg4.8cm모카우레탄","icon":"🛑","load":320,"type":"brake","typeName":"브레이크형","size":"10","tags":["10cm","모카우레탄","중량","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/12936047853"},{"id":"12936047852","name":"중량 캐스터바퀴 10cm(4인치) 회전,320kg 4.8cm 모카우레탄","icon":"🔄","load":320,"type":"swivel","typeName":"회전형","size":"10","tags":["10cm","모카우레탄","중량","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/12936047852"},{"id":"12936047851","name":"중량 캐스터바퀴 10cm(4인치) 고정,320kg 4.8cm 모카우레탄","icon":"🔩","load":320,"type":"fixed","typeName":"고정형","size":"10","tags":["10cm","모카우레탄","중량","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/12936047851"},{"id":"12936047850","name":"중량 캐스터바퀴 10cm(4인치) 브레이크,220kg3.4cm모카우레탄","icon":"🛑","load":220,"type":"brake","typeName":"브레이크형","size":"10","tags":["10cm","모카우레탄","브레이크형"],"url":"https://smartstore.naver.com/twinsbaltong/products/12936047850"},{"id":"12936047849","name":"중량 캐스터바퀴 10cm(4인치) 회전,220kg 3.4cm 모카우레탄","icon":"🔄","load":220,"type":"swivel","typeName":"회전형","size":"10","tags":["10cm","모카우레탄","회전형"],"url":"https://smartstore.naver.com/twinsbaltong/products/12936047849"},{"id":"12936047848","name":"중량 캐스터바퀴 10cm(4인치) 고정,220kg 3.4cm 모카우레탄","icon":"🔩","load":220,"type":"fixed","typeName":"고정형","size":"10","tags":["10cm","모카우레탄","고정형"],"url":"https://smartstore.naver.com/twinsbaltong/products/12936047848"}];
+
+const TYPE_NAMES = {all:'전체',fixed:'고정형',swivel:'회전형',brake:'브레이크형'};
+const SAFETY_TIPS = {
+  '1.5':'실내 평탄 바닥 (사무·유통) 환경에 적합한 최소 안전계수입니다.',
+  '2.0':'공장·물류 창고 등 일반 산업 환경에 <strong>권장</strong>되는 표준 안전계수입니다.',
+  '2.5':'진동·충격이 있는 제조 라인에 적합한 안전계수입니다.',
+  '3.0':'험로·경사로·중공업 등 가혹한 환경에 필요한 높은 안전계수입니다.',
+};
+const TYPE_DESC = {
+  fixed:'🔩 <strong>고정형</strong> — 한 방향 직선 이동. 방향 전환이 적은 운반 기기에 적합합니다.',
+  swivel:'🔄 <strong>회전형</strong> — 360° 전방향 이동. 방향 전환이 잦은 카트·대차에 최적입니다.',
+  brake:'🛑 <strong>브레이크형</strong> — 이동 후 잠금 가능. 고정이 필요한 작업대·장비에 적합합니다.',
+};
+
+let currentTab = 'direct';
+let selectedSize = 'all';
+let selectedFloor = { factor: 2.0, name: '일반 콘크리트' };
+
+const FLOOR_NAMES = {
+  '1.5': '완전 평탄',
+  '2.0': '일반 콘크리트',
+  '2.5': '요철 심함',
+  '3.0': '야외·험로'
+};
+
+function selectFloor(btn) {
+  document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const factor = parseFloat(btn.dataset.factor);
+  selectedFloor = { factor, name: FLOOR_NAMES[btn.dataset.factor] };
+  document.getElementById('auto-safety-display').textContent = '× ' + factor.toFixed(1);
+  resetResults();
+}
+
+function selectSize(btn) {
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('size-all-btn').classList.remove('active');
+  selectedSize = btn.dataset.size;
+  resetResults();
+}
+function selectSizeAll() {
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('size-all-btn').classList.add('active');
+  selectedSize = 'all';
+  resetResults();
+}
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===(t==='direct'?0:1)));
+  document.getElementById('tab-direct').style.display = t==='direct'?'':'none';
+  document.getElementById('tab-calc').style.display = t==='calc'?'':'none';
+  resetResults();
+}
+
+function onTypeChange() {
+  resetResults();
+  const t = document.getElementById('caster-type').value;
+  const el = document.getElementById('type-desc');
+  if (t!=='all') { el.style.display=''; el.innerHTML=TYPE_DESC[t]||''; }
+  else el.style.display='none';
+}
+function resetResults() {
+  document.getElementById('result-summary').classList.remove('show');
+  document.getElementById('caster-results').style.display='none';
+  document.getElementById('no-result').classList.remove('show');
+}
+
+function calculate() {
+  let reqLoad=0, totalLoad=0, safetyFactor=1, wheelCount=4;
+  if (currentTab==='direct') {
+    const v = parseFloat(document.getElementById('direct-load').value);
+    if (!v||v<=0){alert('캐스터 1개당 하중을 입력해주세요.');return;}
+    reqLoad=v; totalLoad=v; safetyFactor=1; wheelCount=1;
+  } else {
+    const w = parseFloat(document.getElementById('equip-weight').value);
+    wheelCount = parseInt(document.getElementById('wheel-count').value)||4;
+    safetyFactor = selectedFloor.factor;
+    if (!w||w<=0){alert('장비 총 무게를 입력해주세요.');return;}
+    totalLoad=w;
+    reqLoad = Math.ceil((w/wheelCount)*safetyFactor);
+  }
+  const casterType = document.getElementById('caster-type').value;
+
+  let matched = CASTERS.filter(c => {
+    if (c.load < reqLoad) return false;
+    if (casterType!=='all' && c.type!==casterType) return false;
+    if (selectedSize!=='all' && c.size!==selectedSize) return false;
+    return true;
+  }).sort((a,b)=>(a.load-reqLoad)-(b.load-reqLoad));
+
+  // 요약
+  document.getElementById('req-load-d').innerHTML = `${reqLoad.toLocaleString()} <span>kg</span>`;
+  document.getElementById('match-cnt').textContent = matched.length;
+  document.getElementById('d-total').textContent = currentTab==='direct'?`${reqLoad} kg`:`${totalLoad.toLocaleString()} kg`;
+  document.getElementById('d-floor').textContent = currentTab==='direct'?'—':selectedFloor.name;
+  document.getElementById('d-safety').textContent = currentTab==='direct'?'직접입력':`× ${safetyFactor.toFixed(1)}`;
+  document.getElementById('d-wheel').textContent = currentTab==='direct'?'1개 기준':`${wheelCount}개`;
+  document.getElementById('d-size').textContent = selectedSize==='all'?'전체':`${selectedSize}cm`;
+  document.getElementById('d-type').textContent = TYPE_NAMES[casterType];
+  document.getElementById('result-summary').classList.add('show');
+
+  if (matched.length===0) {
+    document.getElementById('caster-results').style.display='none';
+    document.getElementById('no-result').classList.add('show');
+    return;
+  }
+  document.getElementById('no-result').classList.remove('show');
+  document.getElementById('result-count').textContent = matched.length;
+
+  document.getElementById('caster-grid').innerHTML = matched.map((c,i)=>{
+    const margin = Math.round((c.load/reqLoad-1)*100);
+    const isBest = i===0;
+    const cls = margin<20?'warn':'safe';
+    const txt = margin<20?`⚠️ 여유 ${margin}%`:`✅ 여유 ${margin}%`;
+    const pct = Math.min(Math.round((reqLoad/c.load)*100),100);
+    const tags = c.tags.map(t=>`<span class="tag${t===c.size+'cm'?' highlight':''}">${t}</span>`).join('');
+    return `
+      <a class="cc${isBest?' best':''}" href="${c.url}" target="_blank" rel="noopener">
+        ${isBest?'<div class="best-r">⭐ 최적 추천</div>':''}
+        <div class="t-icon">${c.icon}</div>
+        <div class="c-name">${c.name}</div>
+        <div class="load-d"><span class="num">${c.load.toLocaleString()}</span><span class="ut">kg / 개</span></div>
+        <div class="mp ${cls}">${txt}</div>
+        <div class="bar-w">
+          <div class="bar-l"><span>사용률 ${pct}%</span><span>정격 ${c.load}kg</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="tag-l">${tags}</div>
+        <div class="shop-btn">🛒 스마트스토어에서 구매하기</div>
+      </a>`;
+  }).join('');
+
+  const el = document.getElementById('caster-results');
+  el.style.display='block';
+  el.style.animation='none';
+  void el.offsetWidth;
+  el.style.animation='fadeUp .4s ease';
+  setTimeout(()=>document.getElementById('result-summary').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+</script>
+</body>
+</html>
